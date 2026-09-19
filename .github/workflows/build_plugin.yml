@@ -2,10 +2,10 @@ name: PSP PRX Plugin Build
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "plugin/**"
-      - ".github/workflows/**"
+  #push:
+  #  paths:
+  #    - "plugin/**"
+  #    - ".github/workflows/**"
 
 permissions:
   contents: read

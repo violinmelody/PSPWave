@@ -24,7 +24,7 @@ jobs:
       - name: Download PSP artifact
         uses: dawidd6/action-download-artifact@v6
         with:
-          workflow: build.yml
+          workflow: build_editor.yml
           workflow_conclusion: success
           name: PSPWave
           path: dist/
