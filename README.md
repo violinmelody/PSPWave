@@ -1,6 +1,6 @@
 # PSPWave
 
-![Icon](./assets/LOGO.PNG)
+![Icon](./assets/LOGO.png)
 
 [![PSP Editor Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml) [![PSP Plugin Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml) [![Tests](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml)
 
