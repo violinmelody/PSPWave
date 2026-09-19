@@ -1,0 +1,257 @@
+#include "render.h"
+#include <pspgu.h>
+#include <pspdisplay.h>
+#include <math.h>
+#include <string.h>
+
+static unsigned int __attribute__((aligned(16))) list[262144];
+
+typedef struct
+{
+	unsigned int c;
+	short x, y, z, pad;
+} V;
+
+static const unsigned char font[38][5] = {
+	{0x7e,0x11,0x11,0x11,0x7e},
+	{0x7f,0x49,0x49,0x49,0x36},
+	{0x3e,0x41,0x41,0x41,0x22},
+	{0x7f,0x41,0x41,0x22,0x1c},
+	{0x7f,0x49,0x49,0x49,0x41},
+	{0x7f,0x09,0x09,0x09,0x01},
+	{0x3e,0x41,0x49,0x49,0x7a},
+	{0x7f,0x08,0x08,0x08,0x7f},
+	{0x41,0x41,0x7f,0x41,0x41},
+	{0x20,0x40,0x41,0x3f,0x01},
+	{0x7f,0x08,0x14,0x22,0x41},
+	{0x7f,0x40,0x40,0x40,0x40},
+	{0x7f,0x02,0x0c,0x02,0x7f},
+	{0x7f,0x04,0x08,0x10,0x7f},
+	{0x3e,0x41,0x41,0x41,0x3e},
+	{0x7f,0x09,0x09,0x09,0x06},
+	{0x3e,0x41,0x51,0x21,0x5e},
+	{0x7f,0x09,0x19,0x29,0x46},
+	{0x46,0x49,0x49,0x49,0x31},
+	{0x01,0x01,0x7f,0x01,0x01},
+	{0x3f,0x40,0x40,0x40,0x3f},
+	{0x1f,0x20,0x40,0x20,0x1f},
+	{0x3f,0x40,0x38,0x40,0x3f},
+	{0x63,0x14,0x08,0x14,0x63},
+	{0x07,0x08,0x70,0x08,0x07},
+	{0x61,0x51,0x49,0x45,0x43},
+	{0x3e,0x51,0x49,0x45,0x3e},
+	{0x00,0x42,0x7f,0x40,0x00},
+	{0x62,0x51,0x49,0x49,0x46},
+	{0x22,0x49,0x49,0x49,0x36},
+	{0x18,0x14,0x12,0x7f,0x10},
+	{0x2f,0x49,0x49,0x49,0x31},
+	{0x3e,0x49,0x49,0x49,0x32},
+	{0x01,0x71,0x09,0x05,0x03},
+	{0x36,0x49,0x49,0x49,0x36},
+	{0x26,0x49,0x49,0x49,0x3e},
+	{0,0,0,0,0},
+	{0x08,0x08,0x08,0x08,0x08}
+};
+
+static const unsigned char lower_font[26][5] = {
+	{32,84,84,84,120},
+	{127,72,68,68,56},
+	{56,68,68,68,32},
+	{56,68,68,72,127},
+	{56,84,84,84,24},
+	{8,126,9,1,2},
+	{24,164,164,164,124},
+	{127,8,4,4,120},
+	{0,68,125,64,0},
+	{64,128,132,125,0},
+	{127,16,40,68,0},
+	{0,65,127,64,0},
+	{124,4,120,4,120},
+	{124,8,4,4,120},
+	{56,68,68,68,56},
+	{252,36,36,36,24},
+	{24,36,36,40,252},
+	{124,8,4,4,8},
+	{72,84,84,84,32},
+	{4,63,68,64,32},
+	{60,64,64,32,124},
+	{28,32,64,32,28},
+	{60,64,48,64,60},
+	{68,40,16,40,68},
+	{28,160,160,160,124},
+	{68,100,84,76,68}
+};
+
+uint32_t render_rgb(int r,int g,int b)
+{
+	return 0xff000000u|((b&255)<<16)|((g&255)<<8)|(r&255);
+}
+
+uint32_t render_hsv(float h,float s,float v)
+{
+	float c=v*s,x=c*(1-fabsf(fmodf(h/60,2)-1)),m=v-c;
+	float r=0,g=0,b=0;
+	if(h<60)
+	{
+		r=c;
+		g=x;
+	}
+	else if(h<120)
+	{
+		r=x;
+		g=c;
+	}
+	else if(h<180)
+	{
+		g=c;
+		b=x;
+	}
+	else if(h<240)
+	{
+		g=x;
+		b=c;
+	}
+	else if(h<300)
+	{
+		r=x;
+		b=c;
+	}
+	else
+	{
+		r=c;
+		b=x;
+	}
+	return render_rgb((r+m)*255,(g+m)*255,(b+m)*255);
+}
+
+void render_init(void)
+{
+	sceGuInit();
+	sceGuStart(GU_DIRECT,list);
+	sceGuDrawBuffer(GU_PSM_8888,(void*)0,512);
+	sceGuDispBuffer(480,272,(void*)0x88000,512);
+	sceGuOffset(2048-240,2048-136);
+	sceGuViewport(2048,2048,480,272);
+	sceGuDisable(GU_DEPTH_TEST);
+	sceGuEnable(GU_SCISSOR_TEST);
+	sceGuScissor(0,0,480,272);
+	sceGuFinish();
+	sceGuSync(0,0);
+	sceDisplayWaitVblankStart();
+	sceGuDisplay(GU_TRUE);
+}
+
+void render_rect(int x,int y,int w,int h,uint32_t c)
+{
+	V*v=sceGuGetMemory(2*sizeof(V));
+	v[0]=(V){c,x,y,0,0};
+	v[1]=(V){c,x+w,y+h,0,0};
+	sceGuDrawArray(GU_SPRITES,GU_COLOR_8888|GU_VERTEX_16BIT|GU_TRANSFORM_2D,2,0,v);
+}
+
+static const unsigned char *punct_glyph(char c)
+{
+	static const unsigned char question[5] = {0x02,0x01,0x51,0x09,0x06};
+	static const unsigned char exclaim[5] = {0x00,0x00,0x5f,0x00,0x00};
+	static const unsigned char semicolon[5] = {0x00,0x56,0x36,0x00,0x00};
+	static const unsigned char colon[5] = {0x00,0x36,0x36,0x00,0x00};
+	static const unsigned char apostrophe[5] = {0x00,0x05,0x03,0x00,0x00};
+	static const unsigned char quote[5] = {0x00,0x07,0x00,0x07,0x00};
+	static const unsigned char star[5] = {0x14,0x08,0x3e,0x08,0x14};
+	static const unsigned char slash[5] = {0x20,0x10,0x08,0x04,0x02};
+	static const unsigned char backslash[5] = {0x02,0x04,0x08,0x10,0x20};
+	static const unsigned char lparen[5] = {0x00,0x1c,0x22,0x41,0x00};
+	static const unsigned char rparen[5] = {0x00,0x41,0x22,0x1c,0x00};
+	static const unsigned char lbracket[5] = {0x00,0x7f,0x41,0x41,0x00};
+	static const unsigned char rbracket[5] = {0x00,0x41,0x41,0x7f,0x00};
+	static const unsigned char lbrace[5] = {0x08,0x36,0x41,0x41,0x00};
+	static const unsigned char rbrace[5] = {0x00,0x41,0x41,0x36,0x08};
+	static const unsigned char less[5] = {0x08,0x14,0x22,0x41,0x00};
+	static const unsigned char greater[5] = {0x00,0x41,0x22,0x14,0x08};
+	static const unsigned char plus[5] = {0x08,0x08,0x3e,0x08,0x08};
+	static const unsigned char minus[5] = {0x08,0x08,0x08,0x08,0x08};
+	static const unsigned char equal[5] = {0x14,0x14,0x14,0x14,0x14};
+	static const unsigned char ampersand[5] = {0x36,0x49,0x55,0x22,0x50};
+	static const unsigned char underscore[5] = {0x40,0x40,0x40,0x40,0x40};
+	static const unsigned char dollar[5] = {0x12,0x2a,0x7f,0x2a,0x24};
+	static const unsigned char hash[5] = {0x14,0x7f,0x14,0x7f,0x14};
+	static const unsigned char at[5] = {0x3e,0x41,0x5d,0x55,0x1e};
+	static const unsigned char dot[5] = {0x00,0x60,0x60,0x00,0x00};
+	static const unsigned char comma[5] = {0x00,0x40,0x30,0x00,0x00};
+	static const unsigned char percent[5] = {0x63,0x13,0x08,0x64,0x63};
+	static const unsigned char caret[5] = {0x04,0x02,0x01,0x02,0x04};
+	static const unsigned char pipe[5] = {0x00,0x00,0x7f,0x00,0x00};
+	static const unsigned char tilde[5] = {0x02,0x01,0x02,0x04,0x02};
+
+	switch (c) {
+	case '?': return question;
+	case '!': return exclaim;
+	case ';': return semicolon;
+	case ':': return colon;
+	case '\'': return apostrophe;
+	case '"': return quote;
+	case '*': return star;
+	case '/': return slash;
+	case '\\': return backslash;
+	case '(': return lparen;
+	case ')': return rparen;
+	case '[': return lbracket;
+	case ']': return rbracket;
+	case '{': return lbrace;
+	case '}': return rbrace;
+	case '<': return less;
+	case '>': return greater;
+	case '+': return plus;
+	case '-': return minus;
+	case '=': return equal;
+	case '&': return ampersand;
+	case '_': return underscore;
+	case '$': return dollar;
+	case '#': return hash;
+	case '@': return at;
+	case '.': return dot;
+	case ',': return comma;
+	case '%': return percent;
+	case '^': return caret;
+	case '|': return pipe;
+	case '~': return tilde;
+	default: return NULL;
+	}
+}
+
+static const unsigned char *glyph_for(char c)
+{
+	if (c >= 'a' && c <= 'z') return lower_font[c - 'a'];
+	if (c >= 'A' && c <= 'Z') return font[c - 'A'];
+	if (c >= '0' && c <= '9') return font[26 + c - '0'];
+	if (c == ' ') return font[36];
+	return punct_glyph(c);
+}
+
+void render_text(int x,int y,int s,uint32_t c,const char*t)
+{
+	static const unsigned char fallback[5] = {0x7f,0x41,0x5d,0x41,0x7f};
+	for (; *t; t++, x += 6 * s)
+	{
+		const unsigned char *glyph = glyph_for(*t);
+		if (!glyph) glyph = fallback;
+		for (int a = 0; a < 5; a++)
+			for (int b = 0; b < 8; b++)
+				if (glyph[a] & (1 << b)) render_rect(x + a * s, y + b * s, s, s, c);
+	}
+}
+
+void render_begin(uint32_t a)
+{
+	sceGuStart(GU_DIRECT,list);
+	sceGuClearColor(a);
+	sceGuClear(GU_COLOR_BUFFER_BIT);
+}
+
+void render_end(void)
+{
+	sceGuFinish();
+	sceGuSync(0,0);
+	sceDisplayWaitVblankStart();
+	sceGuSwapBuffers();
+}

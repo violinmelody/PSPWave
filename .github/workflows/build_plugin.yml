@@ -1,0 +1,103 @@
+name: PSP PRX Plugin Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "plugin/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build PRX Plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Pull official PSPDEV Docker image
+        run: docker pull pspdev/pspdev:latest
+
+      - name: Build PRX in PSPDEV container
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/source" \
+            --workdir /source \
+            pspdev/pspdev:latest \
+            sh -lc '
+              set -e
+
+              export PSPDEV=/usr/local/pspdev
+              export PSPSDK="$PSPDEV/psp/sdk"
+              export PATH="$PSPDEV/bin:$PSPSDK/bin:$PATH"
+
+              echo "=== PSPDEV environment ==="
+              echo "PSPDEV=$PSPDEV"
+              echo "PSPSDK=$PSPSDK"
+              echo "PATH=$PATH"
+
+              echo
+              echo "=== Verify PSP tools ==="
+              command -v psp-cmake
+              command -v cmake
+              command -v psp-gcc
+
+              echo
+              echo "=== Configure ==="
+              cd plugin
+              psp-cmake -S . -B build
+
+              echo
+              echo "=== Build ==="
+              cmake --build build --parallel
+
+              echo
+              echo "=== Build output ==="
+              find build -type f \( -name "*.prx" -o -name "*.elf" \) -print
+            '
+
+      - name: Find PRX
+        id: find_prx
+        run: |
+          set -euo pipefail
+
+          PRX="$(find plugin/build -type f -name '*.prx' -print -quit)"
+
+          if [ -z "$PRX" ]; then
+            echo "ERROR: No .prx file was produced."
+            echo
+            echo "Files in plugin/build:"
+            find plugin/build -type f -print
+            exit 1
+          fi
+
+          echo "Found PRX: $PRX"
+          echo "path=$PRX" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare PSP-ready artifact
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist/SEPLUGINS/PSPWave
+
+          cp "${{ steps.find_prx.outputs.path }}" \
+             dist/SEPLUGINS/PSPWave/PSPWave.prx
+
+          echo
+          echo "=== PSP-ready layout ==="
+          find dist -type f -print
+
+      - name: Upload PSP plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: PSPWave
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
