@@ -146,6 +146,11 @@ static void put_u32(unsigned char *p, unsigned int value)
 	p[3] = (unsigned char)((value >> 24) & 0xff);
 }
 
+static int storage_index_to_xmb_index(int storage_index)
+{
+	return (storage_index + 22) % 34;
+}
+
 static int write_pack(const char *path, const WaveConfig *cfg, int first, int count)
 {
 	SceUID f = sceIoOpen(path, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
@@ -155,7 +160,11 @@ static int write_pack(const char *path, const WaveConfig *cfg, int first, int co
 	{
 		unsigned char bmp[RECORD_SIZE];
 		int offset = PIXEL_OFFSET;
-		const WaveSlot *slot = &cfg->slot[first + i];
+		
+		int storage_index = first + i;
+		int wave_index = storage_index_to_xmb_index(storage_index)
+		const WaveSlot *slot = &cfg->slot[wave_index];
+		
 		memset(bmp, 0, sizeof(bmp));
 		bmp[0] = 'B';
 		bmp[1] = 'M';
