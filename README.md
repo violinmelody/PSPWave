@@ -8,7 +8,7 @@ PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP 3
 
 ### [> Download <](https://github.com/violinmelody/PSPWave/releases)
 
-**Version:** 1.0.0<br/>
+**Version:** 1.0.1<br/>
 **Author:** Miss Violin Melody<br/>
 **Website:** https://violinmelody.net<br/>
 

@@ -542,7 +542,7 @@ int main(void)
 		{
 			render_text(18,58,2,0xffffffff,"ABOUT");
 			render_text(18,92,3,0xffffffff,"PSPWAVE");
-			render_text(18,124,1,0xffd8dbe3,"VERSION: 1.0.0");
+			render_text(18,124,1,0xffd8dbe3,"VERSION: 1.0.1");
 			render_text(18,143,1,0xffd8dbe3,"AUTHOR:  MISS VIOLIN MELODY");
 			render_text(18,162,1,0xffd8dbe3,"HTTPS://VIOLINMELODY.NET");
 			render_text(18,190,1,0xffc7c9d0,"BUILT USING PSPDEV / PSPSDK");
