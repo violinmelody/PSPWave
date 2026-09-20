@@ -172,7 +172,7 @@ static int write_pack(const char *path, const WaveConfig *cfg, int first, int co
 		{
 			for (int x = 0; x < WIDTH; ++x)
 			{
-				Rgb c = gradient_color(slot, gradient_position(slot->gradient, x, y));
+				Rgb c = gradient_color(slot, gradient_position(slot->gradient, x, HEIGHT - 1 - y));
 				bmp[offset++] = c.b;
 				bmp[offset++] = c.g;
 				bmp[offset++] = c.r;
