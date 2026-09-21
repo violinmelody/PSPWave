@@ -8,7 +8,7 @@ PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP h
 
 ### [> Download <](https://github.com/violinmelody/PSPWave/releases)
 
-**Version:** 1.0.1<br/>
+**Version:** 1.1.0<br/>
 **Author:** Miss Violin Melody<br/>
 **Website:** https://violinmelody.net<br/>
 
@@ -21,7 +21,7 @@ PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP h
 
 ## Table of contents
 > - [How it works](#how-it-works)
->   - [Supported gradient modes](#supported-gradient-modes)
+>   - [Supported modes](#supported-gradient-modes)
 >   - [Editor](#live-preview)
 >   - [Themes](#theme-sets)
 >   - [Controls](#controls)
@@ -45,7 +45,11 @@ PSPWave exposes all 34 replacement background records used by the 6.61 firmware.
 
 PSPWave ships with its own default palette & few alternative theme sets.
 
-### Supported gradient modes:
+### Supported modes:
+
+PSPWave supports IMAGE & GRADIENT mode.
+
+In GRADIENT MODE user can set colours and switch between following gradients:
 - Linear Left to Right
 - Linear Right to Left
 - Linear Top to Bottom
@@ -57,6 +61,12 @@ PSPWave ships with its own default palette & few alternative theme sets.
 - Reflected Horizontal
 - Reflected Vertical
 - Diamond
+
+In IMAGE MODE user can select a 24bit BMP image that will be converted to XMB background for selected wave.
+
+> [!NOTE]
+> Image mode is experimental. Unfortunately PSP supports only 60x34 images for XMB backgrounds - using any image of higher resolution will result in blurry background.
+> Use this mode only when you want to load custom made gradients & colour maps in external image editor.
 
 ### Editor
 
