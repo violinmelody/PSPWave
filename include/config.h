@@ -31,10 +31,17 @@ typedef enum {
 	GRADIENT_MODE_COUNT
 } GradientMode;
 
+typedef enum {
+	WAVE_MODE_GRADIENT = 0,
+	WAVE_MODE_IMAGE
+} WaveMode;
+
 typedef struct {
 	Rgb color[PSPWAVE_MAX_COLORS];
 	int count;
 	GradientMode gradient;
+	WaveMode mode;
+	char image_path[256];
 } WaveSlot;
 
 typedef struct {

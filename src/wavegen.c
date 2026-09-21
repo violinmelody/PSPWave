@@ -1,8 +1,10 @@
 #include "wavegen.h"
+#include "image.h"
 #include <pspiofilemgr.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define RECORD_SIZE 6176
 #define PIXEL_OFFSET 54
@@ -30,7 +32,7 @@ static int validate(const char *path, SceOff expected)
 	SceIoStat st;
 	unsigned char sig[2];
 	SceUID f;
-	if (sceIoGetstat(path, &st) < 0 || st.st_size != expected) return -1;
+	if (sceIoGetstat(path, &st) < 0 || st.st_size < expected) return -1;
 	f = sceIoOpen(path, PSP_O_RDONLY, 0);
 	if (f < 0) return f;
 	int n = sceIoRead(f, sig, 2);
@@ -151,6 +153,72 @@ static int storage_index_to_xmb_index(int storage_index)
 	return (storage_index + 22) % 34;
 }
 
+static int write_image_record(SceUID f, const WaveSlot *slot)
+{
+	Image source;
+	unsigned char *rgb = NULL;
+	unsigned char *bmp = NULL;
+	int width = PSPWAVE_IMAGE_WIDTH;
+	int height = PSPWAVE_IMAGE_HEIGHT;
+	int row_size = ((width * 3) + 3) & ~3;
+	int pixel_size = row_size * height;
+	int bmp_size = PIXEL_OFFSET + pixel_size;
+	int record_size = (bmp_size + 3) & ~3;
+	int written;
+
+	if (!slot || slot->image_path[0] == '\0') return -1;
+	memset(&source, 0, sizeof(source));
+	if (image_load(slot->image_path, &source) < 0) return -1;
+
+	rgb = malloc((size_t)width * (size_t)height * 3);
+	bmp = calloc(1, (size_t)record_size);
+	if (!rgb || !bmp)
+	{
+		free(rgb);
+		free(bmp);
+		image_free(&source);
+		return -1;
+	}
+
+	if (image_resize_cover(&source, rgb, width, height) < 0)
+	{
+		free(rgb);
+		free(bmp);
+		image_free(&source);
+		return -1;
+	}
+	image_free(&source);
+
+	bmp[0] = 'B';
+	bmp[1] = 'M';
+	put_u32(&bmp[2], record_size);
+	put_u32(&bmp[10], PIXEL_OFFSET);
+	put_u32(&bmp[14], 40);
+	put_u32(&bmp[18], width);
+	put_u32(&bmp[22], height);
+	put_u16(&bmp[26], 1);
+	put_u16(&bmp[28], 24);
+	put_u32(&bmp[34], pixel_size);
+
+	for (int stored_y = 0; stored_y < height; ++stored_y)
+	{
+		int source_y = height - 1 - stored_y;
+		unsigned char *destination = &bmp[PIXEL_OFFSET + stored_y * row_size];
+		const unsigned char *source_row = &rgb[source_y * width * 3];
+		for (int x = 0; x < width; ++x)
+		{
+			destination[x * 3 + 0] = source_row[x * 3 + 2];
+			destination[x * 3 + 1] = source_row[x * 3 + 1];
+			destination[x * 3 + 2] = source_row[x * 3 + 0];
+		}
+	}
+
+	written = sceIoWrite(f, bmp, record_size);
+	free(rgb);
+	free(bmp);
+	return written == record_size ? 0 : -1;
+}
+
 static int write_pack(const char *path, const WaveConfig *cfg, int first, int count)
 {
 	SceUID f = sceIoOpen(path, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
@@ -164,6 +232,17 @@ static int write_pack(const char *path, const WaveConfig *cfg, int first, int co
 		int storage_index = first + i;
 		int wave_index = storage_index_to_xmb_index(storage_index);
 		const WaveSlot *slot = &cfg->slot[wave_index];
+
+		if (slot->mode == WAVE_MODE_IMAGE)
+		{
+			if (write_image_record(f, slot) < 0)
+			{
+				sceIoClose(f);
+				sceIoRemove(path);
+				return -5;
+			}
+			continue;
+		}
 
 		memset(bmp, 0, sizeof(bmp));
 		bmp[0] = 'B';

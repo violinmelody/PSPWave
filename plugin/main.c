@@ -19,7 +19,7 @@ static int valid_resource(const char *path, SceOff expected_size)
 	SceUID fd;
 	unsigned char signature[2];
 
-	if (sceIoGetstat(path, &stat) < 0 || stat.st_size != expected_size) return 0;
+	if (sceIoGetstat(path, &stat) < 0 || stat.st_size < expected_size) return 0;
 	fd = sceIoOpen(path, PSP_O_RDONLY, 0);
 	if (fd < 0) return 0;
 	if (sceIoRead(fd, signature, sizeof(signature)) != (int)sizeof(signature))

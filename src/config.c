@@ -116,6 +116,8 @@ void config_defaults(WaveConfig *cfg)
 	{
 		cfg->slot[i].count = defaults[i].count;
 		cfg->slot[i].gradient = defaults[i].gradient;
+		cfg->slot[i].mode = WAVE_MODE_GRADIENT;
+		cfg->slot[i].image_path[0] = '\0';
 		cfg->slot[i].color[0] = rgb(defaults[i].c1);
 		cfg->slot[i].color[1] = rgb(defaults[i].count >= 2 ? defaults[i].c2 : defaults[i].c1);
 		cfg->slot[i].color[2] = rgb(defaults[i].count >= 3 ? defaults[i].c3 : defaults[i].c1);
@@ -125,7 +127,7 @@ void config_defaults(WaveConfig *cfg)
 int config_load(WaveConfig *cfg, const char *path)
 {
 	SceUID fd = sceIoOpen(path, PSP_O_RDONLY, 0);
-	char buffer[8192];
+	char buffer[16384];
 	int bytes, loaded = 0;
 	char *line;
 
@@ -144,21 +146,37 @@ int config_load(WaveConfig *cfg, const char *path)
 		if (end) *end = '\0';
 		if (sscanf(line, "%d %31s", &index, gradient) == 2 && index >= 1 && index <= PSPWAVE_SLOTS)
 		{
-			GradientMode mode;
-			char *cursor;
-			int count = 0;
-			if (config_gradient_from_key(gradient, &mode) < 0) return -1;
-			cursor = strchr(line, '#');
-			while (cursor && count < PSPWAVE_MAX_COLORS)
+			if (strcmp(gradient, "IMAGE") == 0)
 			{
-				if (parse_color(cursor, &cfg->slot[index - 1].color[count]) == 0) ++count;
-				cursor = strchr(cursor + 1, '#');
-			}
-			if (count > 0)
-			{
-				cfg->slot[index - 1].count = count;
-				cfg->slot[index - 1].gradient = mode;
+				char *cursor = strchr(line, '=');
+				if (!cursor) return -1;
+				++cursor;
+				while (*cursor == ' ' || *cursor == '\t') ++cursor;
+				cfg->slot[index - 1].mode = WAVE_MODE_IMAGE;
+				strncpy(cfg->slot[index - 1].image_path, cursor, sizeof(cfg->slot[index - 1].image_path) - 1);
+				cfg->slot[index - 1].image_path[sizeof(cfg->slot[index - 1].image_path) - 1] = '\0';
 				++loaded;
+			}
+			else
+			{
+				GradientMode mode;
+				char *cursor;
+				int count = 0;
+				if (config_gradient_from_key(gradient, &mode) < 0) return -1;
+				cursor = strchr(line, '#');
+				while (cursor && count < PSPWAVE_MAX_COLORS)
+				{
+					if (parse_color(cursor, &cfg->slot[index - 1].color[count]) == 0) ++count;
+					cursor = strchr(cursor + 1, '#');
+				}
+				if (count > 0)
+				{
+					cfg->slot[index - 1].count = count;
+					cfg->slot[index - 1].gradient = mode;
+					cfg->slot[index - 1].mode = WAVE_MODE_GRADIENT;
+					cfg->slot[index - 1].image_path[0] = '\0';
+					++loaded;
+				}
 			}
 		}
 		line = end ? end + 1 : NULL;
@@ -168,7 +186,7 @@ int config_load(WaveConfig *cfg, const char *path)
 
 int config_save(const WaveConfig *cfg, const char *path)
 {
-	char temporary[128], line[160];
+	char temporary[128], line[384];
 	SceUID fd;
 	int result;
 
@@ -187,11 +205,18 @@ int config_save(const WaveConfig *cfg, const char *path)
 			sceIoRemove(temporary);
 			return -1;
 		}
-		length = sprintf(line, "%d %s =", i + 1, config_gradient_key(cfg->slot[i].gradient));
-		for (int k = 0; k < count; ++k)
+		if (cfg->slot[i].mode == WAVE_MODE_IMAGE)
 		{
-			Rgb c = cfg->slot[i].color[k];
-			length += sprintf(line + length, " #%02X%02X%02X", c.r, c.g, c.b);
+			length = snprintf(line, sizeof(line), "%d IMAGE = %s", i + 1, cfg->slot[i].image_path);
+		}
+		else
+		{
+			length = sprintf(line, "%d %s =", i + 1, config_gradient_key(cfg->slot[i].gradient));
+			for (int k = 0; k < count; ++k)
+			{
+				Rgb c = cfg->slot[i].color[k];
+				length += sprintf(line + length, " #%02X%02X%02X", c.r, c.g, c.b);
+			}
 		}
 		line[length++] = '\n';
 		if (sceIoWrite(fd, line, length) != length)
