@@ -4,7 +4,7 @@
 
 [![PSP Editor Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml) [![PSP Plugin Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml) [![Tests](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml)
 
-PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP 3000 hardware running CFW 6.61 ARK-5) enabling custom PSP XMB waves backgrounds. It allows you to not only use custom colours but also edit them from PSP directly using the dedicated editor app. The plugin and editor support custom theme sets & work in non-destructive way - disabling the plugin and restarting the PSP brings back original colours of XMB waves.
+PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP hardware running CFW 6.61 ARK-5 or PSVita running CFW 6.61 Adrenaline) enabling custom PSP XMB waves backgrounds. It allows you to not only use custom colours but also edit them from PSP directly using the dedicated editor app. The plugin and editor support custom theme sets & work in non-destructive way - disabling the plugin and restarting the PSP brings back original colours of XMB waves.
 
 ### [> Download <](https://github.com/violinmelody/PSPWave/releases)
 
@@ -94,8 +94,8 @@ Activating a set serializes that set into `PSPWave.txt` and rebuilds necessary f
 ![Firmware Version](./screenshots/scr_firmware.jpg)
 
 > [!CAUTION]
-> Make sure you are installing it on PSP 3000 running CFW 6.61 ARK-5.
-> Do not attempt to run it on PSP 1000, PSP 2000, older CFW or OFW.
+> Make sure you are installing it on [PSP running CFW 6.61 ARK-5](https://github.com/PSP-Arkfive/ARK-5) or [PSVita running CFW 6.61 Adrenaline](https://github.com/TheOfficialFloW/Adrenaline)
+> Do not attempt to run it on older CFW or OFW.
 
 Copy the `PSPWave.prx` & `/Themes/` folder to:
 
