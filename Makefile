@@ -1,5 +1,5 @@
 TARGET = PSPWave
-OBJS = src/main.o src/config.o src/themes.o src/wavegen.o src/render.o
+OBJS = src/main.o src/config.o src/themes.o src/wavegen.o src/render.o src/image.o
 CFLAGS = -O2 -G0 -Wall -Wextra -Wshadow -Wstrict-prototypes
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)

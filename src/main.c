@@ -8,6 +8,7 @@
 #include "themes.h"
 #include "wavegen.h"
 #include "render.h"
+#include "image.h"
 
 PSP_MODULE_INFO("PSPWave",0,1,0); PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER|THREAD_ATTR_VFPU);
 
@@ -115,6 +116,95 @@ static void render_keyboard(int row,int col,int caps)
 	key_box(124,y,76,"BACKSPACE",row==6 && col==1,accent);
 	key_box(206,y,62,"CANCEL",row==6 && col==2,accent);
 	key_box(274,y,46,"OK",row==6 && col==3,accent);
+}
+
+
+typedef struct
+{
+	char name[128];
+	int directory;
+} PickerEntry;
+
+#define PICKER_MAX 128
+#define IMAGE_PREVIEW_WIDTH 108
+#define IMAGE_PREVIEW_HEIGHT 33
+
+static PickerEntry picker[PICKER_MAX];
+static int picker_count=0, picker_sel=0;
+static char picker_path[256]="ms0:/PICTURE";
+static unsigned char image_preview[IMAGE_PREVIEW_WIDTH*IMAGE_PREVIEW_HEIGHT*3];
+static int image_preview_ready=0;
+
+static int has_bmp_extension(const char*name)
+{
+	int n=strlen(name);
+	if(n<4) return 0;
+	const char*e=name+n-4;
+	return (e[0]=='.' && (e[1]=='b'||e[1]=='B') && (e[2]=='m'||e[2]=='M') && (e[3]=='p'||e[3]=='P'));
+}
+
+static void picker_join(char*out,int size,const char*dir,const char*name)
+{
+	int n=strlen(dir);
+	snprintf(out,size,n>0 && dir[n-1]=='/'?"%s%s":"%s/%s",dir,name);
+}
+
+static void picker_parent(void)
+{
+	char*p;
+	int n=strlen(picker_path);
+	while(n>4 && picker_path[n-1]=='/') picker_path[--n]=0;
+	p=strrchr(picker_path,'/');
+	if(p && p>picker_path+3) *p=0;
+	else strcpy(picker_path,"ms0:/");
+}
+
+static int picker_scan(void)
+{
+	SceUID d;
+	SceIoDirent ent;
+	picker_count=0;
+	picker_sel=0;
+	d=sceIoDopen(picker_path);
+	if(d<0)
+	{
+		strcpy(picker_path,"ms0:/");
+		d=sceIoDopen(picker_path);
+	}
+	if(d<0) return d;
+	memset(&ent,0,sizeof(ent));
+	while(picker_count<PICKER_MAX && sceIoDread(d,&ent)>0)
+	{
+		if(strcmp(ent.d_name,".") && strcmp(ent.d_name,".."))
+		{
+			int directory=FIO_S_ISDIR(ent.d_stat.st_mode);
+			if(directory || has_bmp_extension(ent.d_name))
+			{
+				snprintf(picker[picker_count].name,sizeof(picker[picker_count].name),"%s",ent.d_name);
+				picker[picker_count].directory=directory;
+				picker_count++;
+			}
+		}
+		memset(&ent,0,sizeof(ent));
+	}
+	sceIoDclose(d);
+	return 0;
+}
+
+static int load_image_preview(const char*path)
+{
+	Image image;
+	memset(&image,0,sizeof(image));
+	image_preview_ready=0;
+	if(image_load(path,&image)<0) return -1;
+	if(image_resize_cover(&image,image_preview,IMAGE_PREVIEW_WIDTH,IMAGE_PREVIEW_HEIGHT)<0)
+	{
+		image_free(&image);
+		return -1;
+	}
+	image_free(&image);
+	image_preview_ready=1;
+	return 0;
 }
 
 static int running = 1;
@@ -278,7 +368,7 @@ int main(void)
 	int screen=0, sel=0, action=0, slot=0, color_index=0, edit=0, component=0, dirty=0;
 	float eh=0, es=0, ev=0;
 	char current[PSPWAVE_THEME_NAME]={0}, namebuf[PSPWAVE_THEME_NAME]={0};
-	int key_row=0, key_col=0, caps=0, about_return=0;
+	int key_row=0, key_col=0, caps=0, about_return=0, picker_return=1;
 	InputState in={0};
 	while(running)
 	{
@@ -313,6 +403,7 @@ int main(void)
 					slot=0;
 					color_index=0;
 					dirty=0;
+					image_preview_ready=cfg.slot[0].mode==WAVE_MODE_IMAGE && load_image_preview(cfg.slot[0].image_path)==0;
 					screen=1;
 				}
 			}
@@ -424,6 +515,41 @@ int main(void)
 				}
 			}
 		}
+		else if(screen==6)
+		{
+			if(picker_count)
+			{
+				if(nav&PSP_CTRL_UP) picker_sel=(picker_sel+picker_count-1)%picker_count;
+				if(nav&PSP_CTRL_DOWN) picker_sel=(picker_sel+1)%picker_count;
+			}
+			if(press&PSP_CTRL_CIRCLE)
+			{
+				if(strcmp(picker_path,"ms0:/"))
+				{
+					picker_parent();
+					picker_scan();
+				}
+				else screen=picker_return;
+			}
+			if((press&PSP_CTRL_CROSS) && picker_count)
+			{
+				char selected[256];
+				picker_join(selected,sizeof(selected),picker_path,picker[picker_sel].name);
+				if(picker[picker_sel].directory)
+				{
+					strncpy(picker_path,selected,sizeof(picker_path)-1);
+					picker_path[sizeof(picker_path)-1]=0;
+					picker_scan();
+				}
+				else if(load_image_preview(selected)==0)
+				{
+					cfg.slot[slot].mode=WAVE_MODE_IMAGE;
+					snprintf(cfg.slot[slot].image_path,sizeof(cfg.slot[slot].image_path),"%s",selected);
+					dirty=1;
+					screen=picker_return;
+				}
+			}
+		}
 		else if(screen==5)
 		{
 			if(press&(PSP_CTRL_CIRCLE|PSP_CTRL_CROSS|PSP_CTRL_SELECT)) screen=about_return;
@@ -432,24 +558,67 @@ int main(void)
 		{
 			if(!edit)
 			{
-				if(nav&PSP_CTRL_UP) slot=(slot+PSPWAVE_SLOTS-1)%PSPWAVE_SLOTS;
-				if(nav&PSP_CTRL_DOWN) slot=(slot+1)%PSPWAVE_SLOTS;
-				if(nav&PSP_CTRL_LEFT) color_index=(color_index+2)%3;
-				if(nav&PSP_CTRL_RIGHT) color_index=(color_index+1)%3;
+				if(nav&PSP_CTRL_UP)
+				{
+					slot=(slot+PSPWAVE_SLOTS-1)%PSPWAVE_SLOTS;
+					image_preview_ready=cfg.slot[slot].mode==WAVE_MODE_IMAGE && load_image_preview(cfg.slot[slot].image_path)==0;
+				}
+				if(nav&PSP_CTRL_DOWN)
+				{
+					slot=(slot+1)%PSPWAVE_SLOTS;
+					image_preview_ready=cfg.slot[slot].mode==WAVE_MODE_IMAGE && load_image_preview(cfg.slot[slot].image_path)==0;
+				}
+				if(cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
+				{
+					if(nav&PSP_CTRL_LEFT) color_index=(color_index+2)%3;
+					if(nav&PSP_CTRL_RIGHT) color_index=(color_index+1)%3;
+				}
+				if(press&PSP_CTRL_RTRIGGER)
+				{
+					if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
+					{
+						cfg.slot[slot].mode=WAVE_MODE_GRADIENT;
+						image_preview_ready=0;
+					}
+					else
+					{
+						if(cfg.slot[slot].image_path[0] && load_image_preview(cfg.slot[slot].image_path)==0)
+						{
+							cfg.slot[slot].mode=WAVE_MODE_IMAGE;
+							image_preview_ready=1;
+							dirty=1;
+						}
+						else
+						{
+							picker_return=1;
+							picker_scan();
+							screen=6;
+						}
+					}
+				}
 				if(press&PSP_CTRL_CROSS)
 				{
-					if(color_index>=cfg.slot[slot].count) cfg.slot[slot].count=color_index+1;
-					edit=1;
-					component=0;
-					to_hsv(cfg.slot[slot].color[color_index],&eh,&es,&ev);
+					if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
+					{
+						picker_return=1;
+						picker_scan();
+						screen=6;
+					}
+					else
+					{
+						if(color_index>=cfg.slot[slot].count) cfg.slot[slot].count=color_index+1;
+						edit=1;
+						component=0;
+						to_hsv(cfg.slot[slot].color[color_index],&eh,&es,&ev);
+					}
 				}
-				if(press&PSP_CTRL_SQUARE)
+				if((press&PSP_CTRL_SQUARE) && cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
 				{
 					cfg.slot[slot].count=cfg.slot[slot].count%3+1;
 					if(color_index>=cfg.slot[slot].count) color_index=cfg.slot[slot].count-1;
 					dirty=1;
 				}
-				if(press&PSP_CTRL_TRIANGLE)
+				if((press&PSP_CTRL_TRIANGLE) && cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
 				{
 					cfg.slot[slot].gradient=(GradientMode)((cfg.slot[slot].gradient+1)%GRADIENT_MODE_COUNT);
 					dirty=1;
@@ -538,11 +707,26 @@ int main(void)
 			render_text(24,80,1,0xffffffff,namebuf);
 			render_keyboard(key_row,key_col,caps);
 		}
+		else if(screen==6)
+		{
+			render_text(18,52,2,0xffffffff,"SELECT BMP IMAGE");
+			render_text(18,73,1,0xffc7c9d0,picker_path);
+			int first=picker_sel>=8?picker_sel-7:0;
+			for(int i=0;i<8 && first+i<picker_count;i++)
+			{
+				int idx=first+i;
+				int y=96+i*18;
+				render_rect(18,y-3,444,16,idx==picker_sel?render_rgb(75,110,180):render_rgb(34,38,49));
+				render_text(24,y,1,0xffffffff,picker[idx].directory?"[DIR]":"[BMP]");
+				render_text(72,y,1,0xffffffff,picker[idx].name);
+			}
+			render_text(18,250,1,0xffc7c9d0,"X OPEN/SELECT   CIRCLE BACK");
+		}
 		else if(screen==5)
 		{
 			render_text(18,58,2,0xffffffff,"ABOUT");
 			render_text(18,92,3,0xffffffff,"PSPWAVE");
-			render_text(18,124,1,0xffd8dbe3,"VERSION: 1.0.1");
+			render_text(18,124,1,0xffd8dbe3,"VERSION: 1.1.0");
 			render_text(18,143,1,0xffd8dbe3,"AUTHOR:  MISS VIOLIN MELODY");
 			render_text(18,162,1,0xffd8dbe3,"HTTPS://VIOLINMELODY.NET");
 			render_text(18,190,1,0xffc7c9d0,"BUILT USING PSPDEV / PSPSDK");
@@ -558,14 +742,25 @@ int main(void)
 			render_text(18,53,1,0xffd8dbe3,b);
 			sprintf(b,"WAVE %02d / %02d",slot+1,PSPWAVE_SLOTS);
 			render_text(18,70,2,0xffffffff,b);
-			/* live preview uses the exact same gradient sampler as resource generation */
 			render_rect(18,90,444,72,render_rgb(37,41,53));
-			for(int py=0;py<33;py++)
-				for(int px=0;px<108;px++)
-				{
-					Rgb pc=wavegen_preview_sample(&cfg.slot[slot],px/107.0f,py/32.0f);
-					render_rect(24+px*4,93+py*2,4,2,render_rgb(pc.r,pc.g,pc.b));
-				}
+			if(cfg.slot[slot].mode==WAVE_MODE_IMAGE && image_preview_ready)
+			{
+				for(int py=0;py<IMAGE_PREVIEW_HEIGHT;py++)
+					for(int px=0;px<IMAGE_PREVIEW_WIDTH;px++)
+					{
+						unsigned char*p=&image_preview[(py*IMAGE_PREVIEW_WIDTH+px)*3];
+						render_rect(24+px*4,93+py*2,4,2,render_rgb(p[0],p[1],p[2]));
+					}
+			}
+			else if(cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
+			{
+				for(int py=0;py<33;py++)
+					for(int px=0;px<108;px++)
+					{
+						Rgb pc=wavegen_preview_sample(&cfg.slot[slot],px/107.0f,py/32.0f);
+						render_rect(24+px*4,93+py*2,4,2,render_rgb(pc.r,pc.g,pc.b));
+					}
+			}
 			
 			for(int k=0;k<3;k++)
 			{
@@ -597,10 +792,19 @@ int main(void)
 			}
 			else
 			{
-				sprintf(b,"GRADIENT  %s",config_gradient_name(cfg.slot[slot].gradient));
-				render_text(18,190,1,0xffffffff,b);
-				render_text(18,224,1,0xffc7c9d0,"UP/DOWN WAVE  LEFT/RIGHT COLOR  X EDIT  SQUARE COLORS");
-				render_text(18,241,1,0xffc7c9d0,"TRIANGLE GRADIENT  START SAVE  CIRCLE THEMES");
+				if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
+				{
+					render_text(18,190,1,0xffffffff,"MODE  IMAGE");
+					render_text(18,207,1,0xffc7c9d0,cfg.slot[slot].image_path[0]?cfg.slot[slot].image_path:"NO BMP IMAGE SELECTED");
+					render_text(18,224,1,0xffc7c9d0,"UP/DOWN WAVE  X SELECT BMP IMAGE  R MODE");
+				}
+				else
+				{
+					sprintf(b,"GRADIENT  %s",config_gradient_name(cfg.slot[slot].gradient));
+					render_text(18,190,1,0xffffffff,b);
+					render_text(18,224,1,0xffc7c9d0,"UP/DOWN WAVE  LEFT/RIGHT COLOR  X EDIT  SQUARE COLORS");
+				}
+				render_text(18,241,1,0xffc7c9d0,cfg.slot[slot].mode==WAVE_MODE_IMAGE?"R GRADIENT MODE  START SAVE  CIRCLE THEMES":"TRIANGLE GRADIENT  R IMAGE MODE  START SAVE");
 				render_text(18,258,1,dirty?accent:0xff9297a2,dirty?"UNSAVED CHANGES":"SAVED");
 			}
 		}
