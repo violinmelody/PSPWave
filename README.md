@@ -66,7 +66,7 @@ In IMAGE MODE user can select a 24bit BMP image that will be converted to XMB ba
 
 > [!NOTE]
 > Image mode is experimental. Unfortunately PSP supports only 60x34 images for XMB backgrounds - using any image of higher resolution will result in blurry background.
-> Use this mode only when you want to load custom made gradients & colour maps in external image editor.
+> Use this mode only when you want to load custom made gradients & colour maps made in external image editor. This allows for even more freedom.
 
 ### Editor
 
