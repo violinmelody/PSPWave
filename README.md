@@ -45,9 +45,9 @@ PSPWave exposes all 34 replacement background records used by the 6.61 firmware.
 
 PSPWave ships with its own default palette & few alternative theme sets.
 
-### Supported modes:
+### Supported modes
 
-PSPWave supports IMAGE & GRADIENT mode.
+PSPWave supports two modes - GRADIENT MODE & IMAGE MODE.
 
 In GRADIENT MODE user can set colours and switch between following gradients:
 - Linear Left to Right
