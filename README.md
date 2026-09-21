@@ -21,7 +21,7 @@ PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP h
 
 ## Table of contents
 > - [How it works](#how-it-works)
->   - [Supported modes](#supported-gradient-modes)
+>   - [Supported modes](#supported-modes)
 >   - [Editor](#live-preview)
 >   - [Themes](#theme-sets)
 >   - [Controls](#controls)
