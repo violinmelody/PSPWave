@@ -4,7 +4,19 @@
 
 [![PSP Editor Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_editor.yml) [![PSP Plugin Build](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/build_plugin.yml) [![Tests](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml/badge.svg?branch=main)](https://github.com/violinmelody/PSPWave/actions/workflows/smoketest.yml)
 
-PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP hardware running CFW 6.61 ARK-5 or PSVita running CFW 6.61 Adrenaline) enabling custom PSP XMB waves backgrounds. It allows you to not only use custom colours but also edit them from PSP directly using the dedicated editor app. The plugin and editor support custom theme sets & work in non-destructive way - disabling the plugin and restarting the PSP brings back original colours of XMB waves.
+
+### Custom PSP XMB Wave Editor & Generator
+
+PSPWave lets you create custom XMB wave backgrounds & update sidebar colours for the
+PlayStation Portable and PS Vita Adrenaline. Edit and preview it directly on the PSP - no need to manually edit txt files or use any external tools or websites.
+
+Create:
+- custom XMB wave colors
+- 1-3 colour gradients
+- horizontal and diagonal, radial, angle, reflected and diamond gradients
+- custom 60×34 BMP colour maps
+- custom XMB wave presets (themes)
+- custom XMB sidebar colours
 
 ### [> Download <](https://github.com/violinmelody/PSPWave/releases)
 
@@ -14,6 +26,37 @@ PSPWave is a native colour and gradient editor plus a 6.61 VSH plugin (for PSP h
 
 ![Screenshot 1](./screenshots/scr_01.jpg) ![Screenshot 2](./screenshots/scr_02.jpg)<br/>
 ![Screenshot 3](./screenshots/scr_03.jpg) ![Screenshot 4](./screenshots/scr_04.jpg)
+
+
+### Compatibility
+
+- PSP - 6.61 ARK-5
+- PS Vita - 6.61 Adrenaline
+
+
+### PSPWave vs wavezbg
+
+PSPWave is a modern alternative to wavezbg with a built-in PSP editor,
+advanced gradient modes, themes management, custom image-based
+wave backgrounds & option to change sidebar menu colours
+
+| Feature | 🎨 **PSPWave** | 🌊 **wavezbg** |
+|---|:---:|:---:|
+| On-device editor | ✅ | ❌ |
+| Live preview | ✅ | ❌ |
+| Advanced gradients | ✅ | ❌ |
+| HSV editing | ✅ | ❌ |
+| HTML HEX colours | ✅ | ✅ |
+| BMP import | ✅ | ❌ |
+| Multiple Theme sets support | ✅ | ❌ |
+| HSV editing | ✅ | ❌ |
+| Web editor | ❌ | ✅ |
+| Option to edit .txt file manually | ✅ | ✅ |
+| PSP 6.61 ARK-5 support | ✅ | ✅ |
+| PSVita 6.61 Adrenaline support | ✅ | ✅ |
+| Non-destructive working model | ✅ | ✅ |
+| Lightweight | ✅ | ✅ |
+| License | MIT | GPL-3.0 |
 
 > [!NOTE]
 > This project is not affiliated with or endorsed by Sony. [PSPDEV/PSPSDK](https://github.com/pspdev/pspsdk) is the open-source SDK/toolchain used to build this program & plugin.
