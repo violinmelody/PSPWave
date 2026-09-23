@@ -50,13 +50,16 @@ wave backgrounds & option to change sidebar menu colours
 | BMP import | ✅ | ❌ |
 | Custom sidebar colours | ✅ | ❌ |
 | Multiple Theme sets support | ✅ | ❌ |
-| Web editor | ❌ | ✅ |
+| Web editor | ❌[^1] | ✅ |
 | Option to edit .txt file manually | ✅ | ✅ |
 | PSP 6.61 ARK-5 support | ✅ | ✅ |
 | PSVita 6.61 Adrenaline support | ✅ | ✅ |
 | Non-destructive working model | ✅ | ✅ |
 | Lightweight | ✅ | ✅ |
 | License | MIT | GPL-3.0 |
+
+---
+[^1]: There is no need for a web-based editor - everything can be edited directly from your console using a dedicated editor
 
 > [!NOTE]
 > This project is not affiliated with or endorsed by Sony. [PSPDEV/PSPSDK](https://github.com/pspdev/pspsdk) is the open-source SDK/toolchain used to build this program & plugin.
