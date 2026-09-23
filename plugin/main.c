@@ -12,6 +12,136 @@ PSP_MAIN_THREAD_ATTR(0);
 #define PSPWAVE_RECORD_SIZE 6176
 #define PSPWAVE_RESOURCE_1 "ms0:/SEPLUGINS/PSPWave/1.bmp"
 #define PSPWAVE_RESOURCE_2 "ms0:/SEPLUGINS/PSPWave/2.bmp"
+#define PSPWAVE_CONFIG "ms0:/SEPLUGINS/PSPWave/PSPWave.txt"
+#define PSPWAVE_THEME_PALETTE_OFFSET 0x45CD0
+#define PSPWAVE_MENU_COLOUR_COUNT 34
+
+
+typedef struct PspWaveThemeColour {
+	float r;
+	float g;
+	float b;
+} PspWaveThemeColour;
+
+typedef struct PspWaveRgb {
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+} PspWaveRgb;
+
+staticint storage_index_to_xmb_index(int storage_index)
+{
+	return (storage_index + 22) % PSPWAVE_MENU_COLOUR_COUNT;
+}
+
+static int hex_value(char c)
+{
+	if (c >= '0' && c <= '9') return c - '0';
+	if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+	return -1;
+}
+
+static int parse_hex_colour(const char *text, PspWaveRgb *colour)
+{
+	int v[6];
+	if (*text == '#') ++text;
+	for (int i = 0; i < 6; ++i)
+	{
+		v[i] = hex_value(text[i]);
+		if (v[i] < 0) return 0;
+	}
+	colour->r = (unsigned char)((v[0] << 4) | v[1]);
+	colour->g = (unsigned char)((v[2] << 4) | v[3]);
+	colour->b = (unsigned char)((v[4] << 4) | v[5]);
+	return 1;
+}
+
+static int load_menu_colours(PspWaveRgb colours[PSPWAVE_MENU_COLOUR_COUNT])
+{
+	SceUID fd;
+	char buffer[16384];
+	char *line;
+	int bytes;
+	int found = 0;
+
+	fd = sceIoOpen(PSPWAVE_CONFIG, PSP_O_RDONLY, 0);
+	if (fd < 0) return 0;
+	bytes = sceIoRead(fd, buffer, sizeof(buffer) - 1);
+	sceIoClose(fd);
+	if (bytes <= 0) return 0;
+	buffer[bytes] = '\0';
+	line = buffer;
+
+	while (line && *line)
+	{
+		char *end = strchr(line, '\n');
+		if (end) *end = '\0';
+		if (strncmp(line, "MENU ", 5) == 0)
+		{
+			const char *cursor = line + 5;
+			int index = 0;
+			while (*cursor >= '0' && *cursor <= '9')
+			{
+				index = index * 10 + (*cursor - '0');
+				++cursor;
+			}
+			while (*cursor == ' ' || *cursor == '\t') ++cursor;
+			if (index >= 1 && index <= PSPWAVE_MENU_COLOUR_COUNT && parse_hex_colour(cursor, &colours[index - 1])) ++found;
+		}
+		line = end ? end + 1 : NULL;
+	}
+	return found == PSPWAVE_MENU_COLOUR_COUNT;
+}
+
+static int float_in_unit_range(float value)
+{
+	return value >= 0.0f && value <= 1.05f;
+}
+
+static int patch_menu_palette(void)
+{
+	SceUID module_ids[PSPWAVE_MAX_MODULES];
+	PspWaveRgb menu[PSPWAVE_MENU_COLOUR_COUNT];
+	int module_count = 0;
+
+	if (!load_menu_colours(menu)) return 0;
+	if (sceKernelGetModuleIdList(module_ids, sizeof(module_ids), &module_count) < 0) return 0;
+	if (module_count > PSPWAVE_MAX_MODULES) module_count = PSPWAVE_MAX_MODULES;
+
+	for (int i = 0; i < module_count; ++i)
+	{
+		SceKernelModuleInfo info;
+		PspWaveThemeColour *colours;
+		unsigned int image_size;
+		int plausible = 0;
+
+		memset(&info, 0, sizeof(info));
+		info.size = sizeof(info);
+		if (sceKernelQueryModuleInfo(module_ids[i], &info) < 0) continue;
+		if (!strstr(info.name, "vsh")) continue;
+		image_size = info.text_size + info.data_size;
+		if (PSPWAVE_THEME_PALETTE_OFFSET + sizeof(PspWaveThemeColour) * PSPWAVE_MENU_COLOUR_COUNT > image_size) continue;
+
+		colours = (PspWaveThemeColour *)((unsigned char *)info.text_addr + PSPWAVE_THEME_PALETTE_OFFSET);
+		for (int k = 0; k < 6; ++k)
+		{
+			if (float_in_unit_range(colours[k].r) && float_in_unit_range(colours[k].g) && float_in_unit_range(colours[k].b)) ++plausible;
+		}
+		if (plausible != 6) continue;
+
+		for (int k = 0; k < PSPWAVE_MENU_COLOUR_COUNT; ++k)
+		{
+			int menu_index = storage_index_to_xmb_index(k);
+			colours[k].r = menu[menu_index].r / 255.0f;
+			colours[k].g = menu[menu_index].g / 255.0f;
+			colours[k].b = menu[menu_index].b / 255.0f;
+		}
+		sceKernelDcacheWritebackInvalidateRange(colours, sizeof(PspWaveThemeColour) * PSPWAVE_MENU_COLOUR_COUNT);
+		return 1;
+	}
+	return 0;
+}
 
 static int valid_resource(const char *path, SceOff expected_size)
 {
@@ -84,6 +214,8 @@ static int redirect_thread(SceSize args, void *argp)
 {
 	(void)args;
 	(void)argp;
+
+	while (!patch_menu_palette()) sceKernelDelayThread(PSPWAVE_SCAN_DELAY_US);
 
 	/* fail closed - a clean install intentionally keeps Sony's paths until the
 	 * EBOOT has created and validated both byte-for-byte working copies */
