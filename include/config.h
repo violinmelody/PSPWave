@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define PSPWAVE_SLOTS 34
-#define PSPWAVE_MAX_COLORS 3
+#define PSPWAVE_MAX_COLOURS 3
 #define PSPWAVE_PLUGIN_DIR "ms0:/SEPLUGINS/PSPWave"
 #define PSPWAVE_CONFIG_PATH PSPWAVE_PLUGIN_DIR "/PSPWave.txt"
 #define PSPWAVE_RESOURCE1_PATH PSPWAVE_PLUGIN_DIR "/1.bmp"
@@ -37,8 +37,8 @@ typedef enum {
 } WaveMode;
 
 typedef struct {
-	Rgb color[PSPWAVE_MAX_COLORS];
-	Rgb menu_color;
+	Rgb colour[PSPWAVE_MAX_COLOURS];
+	Rgb menu_colour;
 	int count;
 	GradientMode gradient;
 	WaveMode mode;
