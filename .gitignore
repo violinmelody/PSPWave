@@ -1,0 +1,81 @@
+```
+# C / C++ build artifacts
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.dylib
+*.lib
+*.exe
+*.out
+*.bin
+*.elf
+*.prx
+*.pbp
+*.iso
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Debug / profiling
+*.dSYM/
+*.su
+*.gcda
+*.gcno
+*.gcov
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+build/
+cmake-build-*/
+
+# Autotools
+.deps/
+autom4te.cache/
+config.log
+config.status
+libtool
+aclocal.m4
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+Debug/
+Release/
+x64/
+x86/
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# PSP generated/build files
+PSPWave/build/
+PSPWave/dist/
+PSPWave/PSP/
+```
