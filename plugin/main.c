@@ -29,6 +29,11 @@ typedef struct PspWaveRgb {
 	unsigned char b;
 } PspWaveRgb;
 
+staticint storage_index_to_xmb_index(int storage_index)
+{
+	return (storage_index + 22) % PSPWAVE_MENU_COLOUR_COUNT;
+}
+
 static int hex_value(char c)
 {
 	if (c >= '0' && c <= '9') return c - '0';
@@ -127,9 +132,10 @@ static int patch_menu_palette(void)
 
 		for (int k = 0; k < PSPWAVE_MENU_COLOUR_COUNT; ++k)
 		{
-			colours[k].r = menu[k].r / 255.0f;
-			colours[k].g = menu[k].g / 255.0f;
-			colours[k].b = menu[k].b / 255.0f;
+			int menu_index = storage_index_to_xmb_index(k);
+			colours[k].r = menu[menu_index].r / 255.0f;
+			colours[k].g = menu[menu_index].g / 255.0f;
+			colours[k].b = menu[menu_index].b / 255.0f;
 		}
 		sceKernelDcacheWritebackInvalidateRange(colours, sizeof(PspWaveThemeColour) * PSPWAVE_MENU_COLOUR_COUNT);
 		return 1;
