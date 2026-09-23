@@ -29,7 +29,7 @@ typedef struct PspWaveRgb {
 	unsigned char b;
 } PspWaveRgb;
 
-staticint storage_index_to_xmb_index(int storage_index)
+static int storage_index_to_xmb_index(int storage_index)
 {
 	return (storage_index + 22) % PSPWAVE_MENU_COLOUR_COUNT;
 }
