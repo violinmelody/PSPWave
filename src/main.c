@@ -365,7 +365,7 @@ int main(void)
 	}
 	
 	wavegen_get_status(&status);
-	int screen=0, sel=0, action=0, slot=0, color_index=0, edit=0, component=0, dirty=0;
+	int screen=0, sel=0, action=0, slot=0, colour_index=0, edit=0, component=0, dirty=0;
 	float eh=0, es=0, ev=0;
 	char current[PSPWAVE_THEME_NAME]={0}, namebuf[PSPWAVE_THEME_NAME]={0};
 	int key_row=0, key_col=0, caps=0, about_return=0, picker_return=1;
@@ -401,7 +401,7 @@ int main(void)
 				{
 					strcpy(current,list.item[sel].name);
 					slot=0;
-					color_index=0;
+					colour_index=0;
 					dirty=0;
 					image_preview_ready=cfg.slot[0].mode==WAVE_MODE_IMAGE && load_image_preview(cfg.slot[0].image_path)==0;
 					screen=1;
@@ -568,11 +568,8 @@ int main(void)
 					slot=(slot+1)%PSPWAVE_SLOTS;
 					image_preview_ready=cfg.slot[slot].mode==WAVE_MODE_IMAGE && load_image_preview(cfg.slot[slot].image_path)==0;
 				}
-				if(cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
-				{
-					if(nav&PSP_CTRL_LEFT) color_index=(color_index+2)%3;
-					if(nav&PSP_CTRL_RIGHT) color_index=(color_index+1)%3;
-				}
+				if(nav&PSP_CTRL_LEFT) colour_index=(colour_index+3)%4;
+				if(nav&PSP_CTRL_RIGHT) colour_index=(colour_index+1)%4;
 				if(press&PSP_CTRL_RTRIGGER)
 				{
 					if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
@@ -598,7 +595,13 @@ int main(void)
 				}
 				if(press&PSP_CTRL_CROSS)
 				{
-					if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
+					if(colour_index==3)
+					{
+						edit=1;
+						component=0;
+						to_hsv(cfg.slot[slot].menu_colour,&eh,&es,&ev);
+					}
+					else if(cfg.slot[slot].mode==WAVE_MODE_IMAGE)
 					{
 						picker_return=1;
 						picker_scan();
@@ -606,16 +609,16 @@ int main(void)
 					}
 					else
 					{
-						if(color_index>=cfg.slot[slot].count) cfg.slot[slot].count=color_index+1;
+						if(colour_index>=cfg.slot[slot].count) cfg.slot[slot].count=colour_index+1;
 						edit=1;
 						component=0;
-						to_hsv(cfg.slot[slot].color[color_index],&eh,&es,&ev);
+						to_hsv(cfg.slot[slot].colour[colour_index],&eh,&es,&ev);
 					}
 				}
 				if((press&PSP_CTRL_SQUARE) && cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
 				{
 					cfg.slot[slot].count=cfg.slot[slot].count%3+1;
-					if(color_index>=cfg.slot[slot].count) color_index=cfg.slot[slot].count-1;
+					if(colour_index<3 && colour_index>=cfg.slot[slot].count) colour_index=cfg.slot[slot].count-1;
 					dirty=1;
 				}
 				if((press&PSP_CTRL_TRIANGLE) && cfg.slot[slot].mode==WAVE_MODE_GRADIENT)
@@ -662,7 +665,8 @@ int main(void)
 						if(ev<.08f) ev=.08f;
 						if(ev>1)ev=1;
 					}
-					cfg.slot[slot].color[color_index]=from_hsv(eh,es,ev);
+					if(colour_index==3) cfg.slot[slot].menu_colour=from_hsv(eh,es,ev);
+					else cfg.slot[slot].colour[colour_index]=from_hsv(eh,es,ev);
 					dirty=1;
 				}
 				if(press&(PSP_CTRL_CROSS|PSP_CTRL_CIRCLE)) edit=0;
@@ -735,7 +739,7 @@ int main(void)
 		}
 		else
 		{
-			Rgb ac=cfg.slot[slot].color[color_index];
+			Rgb ac=colour_index==3?cfg.slot[slot].menu_colour:cfg.slot[slot].colour[colour_index];
 			uint32_t accent=render_rgb(ac.r,ac.g,ac.b);
 			render_rect(0,40,480,2,accent);
 			sprintf(b,"%s  %s",current,is_active(current,active)?"ACTIVE":"NOT ACTIVE");
@@ -762,15 +766,16 @@ int main(void)
 					}
 			}
 			
-			for(int k=0;k<3;k++)
+			for(int k=0;k<4;k++)
 			{
-				int x=18+k*146;
-				Rgb c=cfg.slot[slot].color[k];
-				render_rect(x,166,132,17,render_rgb(37,41,53));
-				render_rect(x+4,169,22,11,render_rgb(c.r,c.g,c.b));
-				if(k==color_index) render_rect(x,163,132,2,accent);
-				sprintf(b,"C%d%s",k+1,k<cfg.slot[slot].count?"":" OFF");
-				render_text(x+31,171,1,0xffffffff,b);
+				int x=18+k*111;
+				Rgb c=k==3?cfg.slot[slot].menu_colour:cfg.slot[slot].colour[k];
+				render_rect(x,166,102,17,render_rgb(37,41,53));
+				render_rect(x+4,169,18,11,render_rgb(c.r,c.g,c.b));
+				if(k==colour_index) render_rect(x,163,102,2,accent);
+				if(k==3) sprintf(b,"MENU COLOUR");
+				else sprintf(b,"C%d%s",k+1,k<cfg.slot[slot].count?"":" OFF");
+				render_text(x+26,171,1,0xffffffff,b);
 			}
 			
 			if(edit)
@@ -802,7 +807,7 @@ int main(void)
 				{
 					sprintf(b,"GRADIENT  %s",config_gradient_name(cfg.slot[slot].gradient));
 					render_text(18,190,1,0xffffffff,b);
-					render_text(18,224,1,0xffc7c9d0,"UP/DOWN WAVE  LEFT/RIGHT COLOR  X EDIT  SQUARE COLORS");
+					render_text(18,224,1,0xffc7c9d0,"UP/DOWN WAVE  LEFT/RIGHT COLOUR  X EDIT  SQUARE COLOURS");
 				}
 				render_text(18,241,1,0xffc7c9d0,cfg.slot[slot].mode==WAVE_MODE_IMAGE?"R GRADIENT MODE  START SAVE  CIRCLE THEMES":"TRIANGLE GRADIENT  R IMAGE MODE  START SAVE");
 				render_text(18,258,1,dirty?accent:0xff9297a2,dirty?"UNSAVED CHANGES":"SAVED");

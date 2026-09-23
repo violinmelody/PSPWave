@@ -12,7 +12,7 @@ static int hex_value(char c)
 	return -1;
 }
 
-static int parse_color(const char *text, Rgb *color)
+static int parse_colour(const char *text, Rgb *colour)
 {
 	int v[6];
 	if (*text == '#') ++text;
@@ -20,9 +20,9 @@ static int parse_color(const char *text, Rgb *color)
 		v[i] = hex_value(text[i]);
 		if (v[i] < 0) return -1;
 	}
-	color->r = (uint8_t)((v[0] << 4) | v[1]);
-	color->g = (uint8_t)((v[2] << 4) | v[3]);
-	color->b = (uint8_t)((v[4] << 4) | v[5]);
+	colour->r = (uint8_t)((v[0] << 4) | v[1]);
+	colour->g = (uint8_t)((v[2] << 4) | v[3]);
+	colour->b = (uint8_t)((v[4] << 4) | v[5]);
 	return 0;
 }
 
@@ -118,9 +118,10 @@ void config_defaults(WaveConfig *cfg)
 		cfg->slot[i].gradient = defaults[i].gradient;
 		cfg->slot[i].mode = WAVE_MODE_GRADIENT;
 		cfg->slot[i].image_path[0] = '\0';
-		cfg->slot[i].color[0] = rgb(defaults[i].c1);
-		cfg->slot[i].color[1] = rgb(defaults[i].count >= 2 ? defaults[i].c2 : defaults[i].c1);
-		cfg->slot[i].color[2] = rgb(defaults[i].count >= 3 ? defaults[i].c3 : defaults[i].c1);
+		cfg->slot[i].colour[0] = rgb(defaults[i].c1);
+		cfg->slot[i].colour[1] = rgb(defaults[i].count >= 2 ? defaults[i].c2 : defaults[i].c1);
+		cfg->slot[i].colour[2] = rgb(defaults[i].count >= 3 ? defaults[i].c3 : defaults[i].c1);
+		cfg->slot[i].menu_colour = cfg->slot[i].colour[0];
 	}
 }
 
@@ -144,7 +145,11 @@ int config_load(WaveConfig *cfg, const char *path)
 		int index = 0;
 		char gradient[32];
 		if (end) *end = '\0';
-		if (sscanf(line, "%d %31s", &index, gradient) == 2 && index >= 1 && index <= PSPWAVE_SLOTS)
+		if (sscanf(line, "MENU %d %31s", &index, gradient) == 2 && index >= 1 && index <= PSPWAVE_SLOTS)
+		{
+			parse_colour(gradient, &cfg->slot[index - 1].menu_colour);
+		}
+		else if (sscanf(line, "%d %31s", &index, gradient) == 2 && index >= 1 && index <= PSPWAVE_SLOTS)
 		{
 			if (strcmp(gradient, "IMAGE") == 0)
 			{
@@ -164,9 +169,9 @@ int config_load(WaveConfig *cfg, const char *path)
 				int count = 0;
 				if (config_gradient_from_key(gradient, &mode) < 0) return -1;
 				cursor = strchr(line, '#');
-				while (cursor && count < PSPWAVE_MAX_COLORS)
+				while (cursor && count < PSPWAVE_MAX_COLOURS)
 				{
-					if (parse_color(cursor, &cfg->slot[index - 1].color[count]) == 0) ++count;
+					if (parse_colour(cursor, &cfg->slot[index - 1].colour[count]) == 0) ++count;
 					cursor = strchr(cursor + 1, '#');
 				}
 				if (count > 0)
@@ -175,6 +180,7 @@ int config_load(WaveConfig *cfg, const char *path)
 					cfg->slot[index - 1].gradient = mode;
 					cfg->slot[index - 1].mode = WAVE_MODE_GRADIENT;
 					cfg->slot[index - 1].image_path[0] = '\0';
+					cfg->slot[index - 1].menu_colour = cfg->slot[index - 1].colour[0];
 					++loaded;
 				}
 			}
@@ -199,7 +205,7 @@ int config_save(const WaveConfig *cfg, const char *path)
 	{
 		int count = cfg->slot[i].count;
 		int length;
-		if (count < 1 || count > PSPWAVE_MAX_COLORS)
+		if (count < 1 || count > PSPWAVE_MAX_COLOURS)
 		{
 			sceIoClose(fd);
 			sceIoRemove(temporary);
@@ -214,7 +220,7 @@ int config_save(const WaveConfig *cfg, const char *path)
 			length = sprintf(line, "%d %s =", i + 1, config_gradient_key(cfg->slot[i].gradient));
 			for (int k = 0; k < count; ++k)
 			{
-				Rgb c = cfg->slot[i].color[k];
+				Rgb c = cfg->slot[i].colour[k];
 				length += sprintf(line + length, " #%02X%02X%02X", c.r, c.g, c.b);
 			}
 		}
@@ -224,6 +230,17 @@ int config_save(const WaveConfig *cfg, const char *path)
 			sceIoClose(fd);
 			sceIoRemove(temporary);
 			return -1;
+		}
+
+		{
+			Rgb menu = cfg->slot[i].menu_colour;
+			length = snprintf(line, sizeof(line), "MENU %d #%02X%02X%02X\n", i + 1, menu.r, menu.g, menu.b);
+			if (sceIoWrite(fd, line, length) != length)
+			{
+				sceIoClose(fd);
+				sceIoRemove(temporary);
+				return -1;
+			}
 		}
 	}
 
