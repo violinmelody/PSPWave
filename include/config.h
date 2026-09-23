@@ -38,6 +38,7 @@ typedef enum {
 
 typedef struct {
 	Rgb color[PSPWAVE_MAX_COLORS];
+	Rgb menu_color;
 	int count;
 	GradientMode gradient;
 	WaveMode mode;

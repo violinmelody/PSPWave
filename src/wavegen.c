@@ -94,16 +94,16 @@ static float gradient_position(GradientMode mode, int x, int y)
 	}
 }
 
-static Rgb gradient_color(const WaveSlot *slot, float t)
+static Rgb gradient_colour(const WaveSlot *slot, float t)
 {
-	Rgb a = slot->color[0];
-	Rgb b = slot->count >= 2 ? slot->color[1] : a;
+	Rgb a = slot->colour[0];
+	Rgb b = slot->count >= 2 ? slot->colour[1] : a;
 	Rgb out;
 	t = clamp01(t);
 
 	if (slot->count >= 3)
 	{
-		Rgb c = slot->color[2];
+		Rgb c = slot->colour[2];
 		if (t <= 0.5f)
 		{
 			float local = t * 2.0f;
@@ -131,7 +131,7 @@ Rgb wavegen_preview_sample(const WaveSlot *slot, float u, float v)
 {
 	int x = (int)(clamp01(u) * (float)(WIDTH - 1) + 0.5f);
 	int y = (int)(clamp01(v) * (float)(HEIGHT - 1) + 0.5f);
-	return gradient_color(slot, gradient_position(slot->gradient, x, y));
+	return gradient_colour(slot, gradient_position(slot->gradient, x, y));
 }
 
 static void put_u16(unsigned char *p, unsigned int value)
@@ -260,7 +260,7 @@ static int write_pack(const char *path, const WaveConfig *cfg, int first, int co
 		{
 			for (int x = 0; x < WIDTH; ++x)
 			{
-				Rgb c = gradient_color(slot, gradient_position(slot->gradient, x, HEIGHT - 1 - y));
+				Rgb c = gradient_colour(slot, gradient_position(slot->gradient, x, HEIGHT - 1 - y));
 				bmp[offset++] = c.b;
 				bmp[offset++] = c.g;
 				bmp[offset++] = c.r;
