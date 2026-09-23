@@ -48,8 +48,8 @@ wave backgrounds & option to change sidebar menu colours
 | HSV editing | ✅ | ❌ |
 | HTML HEX colours | ✅ | ✅ |
 | BMP import | ✅ | ❌ |
+| Custom sidebar colours | ✅ | ❌ |
 | Multiple Theme sets support | ✅ | ❌ |
-| HSV editing | ✅ | ❌ |
 | Web editor | ❌ | ✅ |
 | Option to edit .txt file manually | ✅ | ✅ |
 | PSP 6.61 ARK-5 support | ✅ | ✅ |
