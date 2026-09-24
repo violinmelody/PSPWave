@@ -36,7 +36,7 @@ Create:
 
 ### PSPWave vs wavezbg
 
-PSPWave is a modern alternative to wavezbg with a built-in PSP editor,
+PSPWave is a modern alternative to wavezbg, developed from scratch with a built-in PSP editor,
 advanced gradient modes, themes management, custom image-based
 wave backgrounds & option to change sidebar menu colours
 
